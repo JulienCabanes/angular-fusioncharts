@@ -130,7 +130,8 @@ fc.provider('fcChartFactory', function() {
             chartType = chartType || provider.defaultChartType;
 
             if( provider.useFlash ) {
-                chartType += '.swf';
+                FusionCharts.setCurrentRenderer('flash');
+                chartType = (provider.swfPath || '') + chartType + '.swf';
             }
 
             if( !chartId ) {
@@ -178,7 +179,7 @@ fc.provider('fcChartFactory', function() {
 
                         chart.setChartData(data, dataType || determineDataType(data) );
 
-                        if( !chart.hasRendered() ) {
+                        if(!('hasRendered' in chart) || !chart.hasRendered() ) {
                             chart.render(id);
                         }
 

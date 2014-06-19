@@ -1,6 +1,6 @@
 # AngularJS Integration For FusionCharts
 
-Version: 0.0.2
+Version: 0.0.3
 
 ## About angular-fusioncharts
 
