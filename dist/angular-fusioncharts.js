@@ -23,76 +23,76 @@ fc.directive('fcChart', ['fcChartFactory', '$timeout', function(fcChartFactory, 
     replace: true,
 
     link: function(scope, element, attrs) {
+      // holds the current chart instance
+      var chart, handle;
 
-      require(['FusionCharts'], function() {
-        FusionCharts.options.scriptBaseUri = requirejs_config.baseUrl + 'js/libs/fusioncharts/';
+      function renderData() {
 
-        // holds the current chart instance
-        var chart, handle;
+        // this could be invoked twice in a $apply cycle if the type and data has changed for example
+        // make sure rendering happens only once.
+        if( !handle ) {
 
-        function renderData() {
+          handle = $timeout(function() {
 
-          // this could be invoked twice in a $apply cycle if the type and data has changed for example
-          // make sure rendering happens only once.
-          if( !handle ) {
+            if( scope.data ) {
 
-            handle = $timeout(function() {
+              chart.renderData(element, scope.data, scope.dataType);
 
-              if( scope.data ) {
+            } else if( angular.isString( scope.dataUrl ) ) {
 
-                chart.renderData(element, scope.data, scope.dataType);
+              chart.renderDataUrl(element, scope.dataUrl, scope.dataType);
 
-              } else if( angular.isString( scope.dataUrl ) ) {
+            } else {
 
-                chart.renderDataUrl(element, scope.dataUrl, scope.dataType);
+              throw new Error('No data to get. Use the fc-data or fc-data-url attributes.');
 
-              } else {
+            }
 
-                throw new Error('No data to get. Use the fc-data or fc-data-url attributes.');
+            handle = null;
 
-              }
-
-              handle = null;
-
-            });
-
-          }
-        }
-
-        function createChart(type) {
-
-          if( chart ) {
-            // dispose of previously created chart because the chart type has changed
-            chart.destroy();
-          }
-
-          chart = fcChartFactory.create(type, scope.chartId, scope.width, scope.height);
-
-          renderData();
+          });
 
         }
+      }
 
-        function reRenderOnChange(newVal, oldVal) {
+      function createChart(type) {
 
-          if( newVal && newVal !== oldVal ) {
-            renderData();
-          }
-
-        }
-
-        // creates the chart and re-creates it if chart type changes
-        scope.$watch('type', createChart);
-
-        // watch if data changes
-        scope.$watch('data', reRenderOnChange, !angular.isUndefined(attrs.dynamic));
-
-        // watch if the data URL changes
-        scope.$watch('dataUrl', reRenderOnChange);
-
-        // cleanup after ourselves
-        scope.$on('$destroy', function() {
+        if( chart ) {
+          // dispose of previously created chart because the chart type has changed
           chart.destroy();
+        }
+
+        require(['FusionCharts'], function() {
+          FusionCharts.options.scriptBaseUri = requirejs_config.baseUrl + 'js/libs/fusioncharts/';
+          FusionCharts.ready(function() {
+            chart = fcChartFactory.create(type, scope.chartId, scope.width, scope.height);
+            renderData();
+          });
         });
+
+
+      }
+
+      function reRenderOnChange(newVal, oldVal) {
+
+        if( newVal && newVal !== oldVal ) {
+          renderData();
+        }
+
+      }
+
+      // creates the chart and re-creates it if chart type changes
+      scope.$watch('type', createChart);
+
+      // watch if data changes
+      scope.$watch('data', reRenderOnChange, !angular.isUndefined(attrs.dynamic));
+
+      // watch if the data URL changes
+      scope.$watch('dataUrl', reRenderOnChange);
+
+      // cleanup after ourselves
+      scope.$on('$destroy', function() {
+        chart.destroy();
       });
     }
   };
@@ -132,10 +132,12 @@ fc.provider('fcChartFactory', function() {
 
       chartType = chartType || provider.defaultChartType;
 
-      if( provider.useFlash ) {
+      /** /
+      if( provider.useFlash && FusionCharts) {
         FusionCharts.setCurrentRenderer('flash');
         chartType = (provider.swfPath || '') + chartType + '.swf';
       }
+      /**/
 
       if( !chartId ) {
         chartId = 'fcChart' + idCounter++;
